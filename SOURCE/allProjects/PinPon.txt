@@ -1,0 +1,179 @@
+12:47 PM 1/18/201512:47 PM 1/18/2015import RPi.GPIO as gpio
+import time
+import lewl as l
+import ada
+pas = 'true'
+inp = 'c'
+runleft = 'true'
+golr = 0
+goll = 0
+def end():
+    print('\n\t\toooooooo    oo        oo    ooo')
+    print('\t\toooooooo    ooo       oo    oooo')
+    print('\t\too          oooo      oo    oo  o')
+    print('\t\toooooo      oo oo     oo    oo   oo')
+    print('\t\toooooo      oo   o    oo    oo   oo')
+    print('\t\too          oo    o   oo    oo   oo')
+    print('\t\too          oo     o  oo    oo  oo')
+    print('\t\toooooooo    oo       ooo    oo oo')
+    print('\t\toooooooo    oo        oo    oo')
+    print('\n\n')
+        
+gpio.setmode(gpio.BCM)
+gpio.setwarnings(False)
+delay= .003
+swr = 27
+swl = 17
+swreset = 4
+gpio.setup(swr,gpio.IN, pull_up_down = gpio.PUD_UP)
+gpio.setup(swl,gpio.IN, pull_up_down = gpio.PUD_UP)
+gpio.setup(swreset,gpio.IN, pull_up_down = gpio.PUD_UP)
+status = False 
+e2 = 18
+p1 = 23
+l1 = 24
+l2 = 25
+l3 = 12
+l4 = 16
+l5 = 20
+l6 = 21
+p2 = 26
+e1 = 19
+m1 = 22
+m2 = 5
+m3 = 6
+m4 = 13
+motor = [m1, m2,m3, m4]
+for i in motor:
+        gpio.setup(i, gpio.OUT)
+        gpio.output(i, False)
+led = [e2,p1,l1, l2, l3, l4, l5, l6,p2,e1]
+
+for i in led:
+	gpio.setup(i, gpio.OUT)
+	gpio.output(i, True)	
+gpio.output(p1, False)
+gpio.output(p2, False)
+flag = 'r'   
+ada.resetmotor()
+
+while inp!= 'x':
+
+        inp = raw_input('\n  Enter x to exit from game or any other to strt a new game\n')
+        if inp == 'x':
+                break
+        else:
+                print('!! wake up,The game already started, please Right player it is your turn')
+                print('\n\t             State of the tournament')
+                print('\n              Left Player              Right Player')
+                #ada.resetmotor()
+                while goll < 10 and golr < 10 :
+              
+                        if runleft == 'true':
+                                if pas == 'true':
+                                        if gpio.input(swr) == 0:
+                                        
+                                                l.wright()
+                                        
+                                                if gpio.input(swl) == 0:
+                                                        runleft = 'false'
+                                                        #ada.forward()
+                                                        #ada.resetmotor()
+                                                        #goll += 1
+                                                        pas = 'false'
+                                                        #print('\n\tState of the tournament: player Right # points = {0} player Left points = {1}'.format(golr, goll))
+                                                                                        
+                                                else:                               
+                                                        gpio.output(e1, False)
+                                                        time.sleep(.5)
+                                                        gpio.output(e1, True)
+                                                        golr +=1
+                                                        if flag == 'l':                                                                
+                                                                ada.backwards()
+                                                        #ada.resetmotor()
+                                                        flag = 'r'
+                                                        print('                  {0}                        {1}'.format(goll, golr))
+                                                        pas = 'true'
+                                else:
+                                        l.wright()
+                                        
+                                        if gpio.input(swl) == 0:
+                                                runleft = 'false'
+                                                #ada.forward()
+                                                #ada.resetmotor()
+                                                #goll += 1
+                                                pas = 'false'
+                                               # print('\n\tState of the tournament: player Right # points = {0} player Left points = {1}'.format(golr, goll))
+                                                                                        
+                                        else:                               
+                                                gpio.output(e1, False)
+                                                time.sleep(.5)
+                                                gpio.output(e1, True)
+                                                golr +=1
+                                                pas = 'true'
+                                                if flag == 'l':                                                        
+                                                        ada.backwards()
+                                                #ada.resetmotor()
+                                                flag = 'r'
+                                                print('                  {0}                        {1}'.format(goll, golr))       
+                                        
+                        else:
+                                if pas == 'true':
+                                        if gpio.input(swl) == 0:
+                                                l.wleft()
+                                                if gpio.input(swr) == 0:
+                                                        runleft = 'true'
+                                                        #ada.backwards()
+                                                        #ada.resetmotor()
+                                                        #golr += 1
+                                                        pas = 'false'
+                                                        #print('\n\tState of the tournament: player Right # points = {0} player Left points = {1}'.format(golr, goll))
+                                                else:                                
+                                                        gpio.output(e2, False)
+                                                        time.sleep(.5)
+                                                        gpio.output(e2,True)
+                                                        goll += 1
+                                                        if flag == 'r':
+                                                                ada.forward()
+                                                        pas = 'true'
+                                                        flag = 'l'
+                                                        #ada.resetmotor()
+                                                        print('                  {0}                        {1}'.format(goll, golr))
+                               
+                                else:
+
+                                        l.wleft()
+                                        if gpio.input(swr) == 0:
+                                                runleft = 'true'
+                                                #ada.backwards()
+                                                #ada.resetmotor()
+                                                #golr += 1
+                                                pas = 'false'
+                                                #print('\n\tState of the tournament: player Right # points = {0} player Left points = {1}'.format(golr, goll))
+                                        else:                                
+                                                gpio.output(e2, False)
+                                                time.sleep(.5)
+                                                gpio.output(e2,True)
+                                                goll += 1
+                                                if flag == 'r':
+                                                        ada.forward()
+                                                pas = 'true'
+                                                flag = 'l'
+                                                #ada.resetmotor()
+                                                print('                  {0}                        {1}'.format(goll, golr))
+                                        
+                if golr > goll:
+                        print('\n\tplayer Right is the winner for {0} points\n\n'.format( golr - goll))
+                        
+                else:
+                        print('\n\tplayer Left is the winner for {0} points\n\n'.format(goll - golr))
+                        
+                golr = 0
+                goll = 0
+                end()
+                        
+time.sleep(5)
+gpio.cleanup()
+print('See you in the next game')
+
+
