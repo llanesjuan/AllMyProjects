@@ -1,0 +1,227 @@
+   
+ /*Created Mar 2 2014
+
+ by Juan Llanes and Lee Chia
+Microcontroller:ARDUINO, language: C.
+The purpose of the project is optimize the use of solar light to produce energy. 
+the project consist of two stations: the sensor and the solar panel.the sensor station has two motors to move the sensor in all directions and the solar panel station has two motors as well to move the solar panel in all directions.It was used a 74138 to select which motor to run.To start the sensor is moved to initial position and after it finds the better ilumination point, the solar panel will be moved to that position.
+ */
+#include <LiquidCrystal.h>
+#include <Stepper.h>
+#include <TimerOne.h>
+
+LiquidCrystal lcd(2,3,4,5,6,7);
+const int stepsPerRevolution =32;  
+Stepper myStepperY(stepsPerRevolution, 8,9,10,11);            
+Stepper myStepperX(stepsPerRevolution, 8,9,10,11);
+const int stepsPerRevolutionRes =2038;  
+Stepper myStepperResY(stepsPerRevolutionRes, 8,9,10,11); 
+Stepper myStepperResX(stepsPerRevolutionRes,8,9,10,11); 
+int mov1 = 12;
+int mov2 = 13;
+int cont = 0;
+int sensorLight = 0;
+int baseLight = 0;
+int col = 0;
+int row = 0;
+int oldCol = 0; 
+int oldRow = 0;
+const int analogLight = A0;  // to measure light intensity
+const int voltLight = A5;
+boolean cheq = false;
+const int analogResetY1 = A1;
+const int analogResetX1 = A2;
+const int analogResetY2 = A3;
+const int analogResetX2 = A4;
+float volt= 5.0;
+
+//setup
+void setup() {
+  float voltInt = (analogRead(voltLight))*5.00/1023.00;
+  lcd.begin(16, 2);
+  lcd.setCursor(0,0);
+  lcd.print("Tracking the SUN");
+  lcd.setCursor(0,1);
+  lcd.print("ECET 3701");
+  delay(2000);
+  lcd.setCursor(0,0);
+  lcd.print("Eng. Li chia    ");
+  lcd.setCursor(0,1);
+  lcd.print("Eng. Juan Llanes");
+  delay(2000);
+  lcd.setCursor(0,0);
+  lcd.print("initializing....");
+  lcd.setCursor(0,1);
+  lcd.print("                ");               
+  delay(2000);
+  lcd.setCursor(0,0);
+  lcd.print("Panel's volt:   ");
+  lcd.setCursor(12,1);
+  lcd.print(voltInt);
+  // set the speed at 60 rpm:
+  myStepperX.setSpeed(100);
+  myStepperY.setSpeed(100);
+  
+   pinMode(mov1, OUTPUT);
+   pinMode(mov2, OUTPUT);
+   digitalWrite(mov1, LOW);
+   digitalWrite(mov2, LOW); 
+ 
+   ResetSeeker();
+   ResetSolPanel();
+  
+}
+
+void loop() {
+  //function to look for the position of the sun
+  SeekSun();
+ //function to position the solar panel to point provided by SeekSun function 
+  PosSolPanel();
+ // function to reset the light sensor station to the initial positon 
+  ResetSeeker();
+}
+
+void SeekSun()
+{
+  
+   baseLight = 0;  
+   cont = 0;
+ 
+  for(int x = 0; x<=16; x++)//39 colums*52 steps each
+  { 
+    if(x%2 == 0)
+    {
+       for(int y = 0; y <=31; y++){
+         
+          if(cheq == true){
+          cont ++;
+          if (cont == 77){
+            return;
+          }
+        } 
+         change1();  
+         myStepperY.step(-stepsPerRevolution);
+         delay(20);  
+         sensorLight = analogRead(analogLight);    
+         if(sensorLight > baseLight){         
+          baseLight = sensorLight;
+           row = x;
+           col = y;
+           cheq = true;
+           cont = 0;      
+           delay(20);
+           float voltInt = (analogRead(voltLight))*5.00/1023.00;
+           delay(20);
+           lcd.print(voltInt);
+          }       
+      }
+    }
+    else
+    {
+      for(int y = 31; y >= 0;y--){
+        if(cheq == true){
+        cont ++;
+        if (cont == 77)
+        { 
+          return;
+         }
+       }     
+       change1();     
+       myStepperY.step(stepsPerRevolution);
+       delay(20);  
+       int sensorLight = analogRead(analogLight);    
+       if(sensorLight > baseLight){         
+         baseLight = sensorLight;
+         row = x;
+         col = y;
+         cheq = true;
+         cont = 0;         
+         delay(20);
+         float voltInt = (analogRead(voltLight))*5.00/1023.00;
+         delay(20);
+         lcd.print(voltInt);
+       }        
+       }     
+    }
+  
+    change2(); 
+    myStepperX.step(-stepsPerRevolution);
+    delay(20);
+    
+    } 
+ 
+      ResetSeeker();
+   
+ 
+} 
+  void PosSolPanel()
+  {  
+  int stepY = 0;
+  int stepX = 0;
+  stepY = (col - oldCol) * 32;
+  oldCol = col;
+  stepX = (row - oldRow)*32;
+  oldRow = row;
+  change3();
+  myStepperY.step(-stepY);
+  delay(20);
+  change4();
+  myStepperX.step(-stepX);
+  delay(20);
+ /* lcd.setCursor(0, 1);
+  lcd.print("voltage =  ");
+  int valVolt = analogRead(volt);
+  float voltage = valVolt * (5.0/1023.0);
+  lcd.setCursor(10, 1);
+  lcd.print(voltage);*/
+} 
+void change1(){
+   digitalWrite(mov1, LOW);
+   digitalWrite(mov2,LOW);
+ 
+ }
+void change2(){
+   digitalWrite(mov1, HIGH);
+   digitalWrite(mov2,LOW);
+   
+ }
+ void change3(){
+   digitalWrite(mov1, LOW);
+   digitalWrite(mov2,HIGH);
+   
+ }
+ void change4(){
+   digitalWrite(mov1, HIGH);
+   digitalWrite(mov2,HIGH);
+   
+ }
+void Reset(Stepper * stepper, const int * analogReset){
+// to move motor back looking for position zero-1 
+ for(int i=0;i<=1500;i++){                    
+    stepper->step(1);
+    delay(20);
+    int sensorReset = analogRead(*analogReset); ;   
+    if(sensorReset >= 400){
+      stepper->step(-1);
+      break;
+    }
+ }
+
+}
+void ResetSeeker()
+{
+    change1();
+
+  Reset(&myStepperResY, &analogResetY1);                                                                                                                                                                    
+  change2();   
+  Reset(&myStepperResX, &analogResetX1); 
+}
+
+ void ResetSolPanel()
+ {
+     change3();  
+  Reset(&myStepperResY, &analogResetY2);                                            
+  change4();   
+  Reset(&myStepperResX, &analogResetX2); 
+ }
+
