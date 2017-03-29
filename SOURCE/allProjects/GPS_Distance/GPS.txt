@@ -1,0 +1,134 @@
+#######################################################################
+# ECET 4720 - Final Program that get position of Raspberry pi from GPS and
+# give the distances of objects in right,left and rear sides of the Raspberry
+# by Ronni and Juan on Nov-23-2014
+# Module name: sensor
+# The program uses the Adafruit Ultimate GPS on the Raspberry Pi module
+# to retrieve the Latitude and Longitude of the Raspberry pi.
+# also, the program uses the HC-RS04 ultrasound sensor to measure the 
+# distances to objects at both sides and the rear part of the raspberry pi# 
+#######################################################################
+import RPi.GPIO as GPIO
+from subprocess import call    # to allow us to call commands of linux from
+                                                       # inside python code
+
+import os
+from gps import *
+import time
+pos=[0,0]
+
+
+a=''
+distR=0
+distL=0
+distC=0
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+
+TRIG1 = 24
+ECHO1 = 25
+TRIG2 = 12
+ECHO2 = 16
+TRIG3 = 20
+ECHO3 = 21
+
+##########################################################################
+# restartGps: It is a function that kills and restarts the process GPS, 
+# these actions are necessary when the GPS module are not successful
+# getting a "FIX" from the satellite
+#########################################################################
+def restartGps():
+    print '[Info] Killing GPS.'
+    os.system("killall gpsd")    
+    print '[Info] Starting GPS...'
+    os.system("gpsd /dev/ttyUSB0 -F /var/run/gpsd.sock")    
+    time.sleep(2)
+    
+##########################################################################
+# meas: It is a function that initializes and give the signals needed to 
+# start measuring distances using the ultrasonic sensor.
+# Parameters: t=>GPIO pin used as output; e->GPIO pin used as input
+#########################################################################
+def meas(t,e):
+    GPIO.setup(t,GPIO.OUT)
+    GPIO.setup(e,GPIO.IN)
+       
+    GPIO.output(t, False)    
+    time.sleep(.8)                                   # allow module to settle
+    GPIO.output(t, True)                            #sending a positive pulse
+    time.sleep(0.00001)                        #positive pulse of 10 microsec    
+    GPIO.output(t, False)                        #now waiteto get signal back    
+    while GPIO.input(e)==0:            #start counting time to recover signal    
+        pulse_start = time.time()
+    while GPIO.input(e)==1:             # stop counting when signal gets zero    
+        pulse_end = time.time()
+    pulse_duration = pulse_end - pulse_start
+    distance = pulse_duration*34000/2               #signal speed=34000cm/sec
+    return distance    
+##########################################################################
+# getDistance: It is a function that depending on the parameter introduced
+# it determines which distance it is going to measure and return, it calls
+# function meas to do the actual measuring.
+#########################################################################     
+def getDistance(a):
+    if a == 'r':               # to measure the distance from the right side     
+        return meas(TRIG1,ECHO1)
+    elif a == 'b':             # to measure the distance from the rear side 
+        return meas(TRIG1,ECHO1)
+    elif a == 'l':              # to measure the distance from the left side 
+        return meas(TRIG1,ECHO1)
+##########################################################################
+# This code Creates a class GpsMoniotr to get stream of info from GPS
+#It includes a function (coord) that once Gpsmonitor class is instantiate   
+# it is possible to get position of the raspberry pi
+######################################################################### 
+class GpsMonitor():
+    def __init__(self):
+        self.gpsd = gps(mode=WATCH_ENABLE)     
+   
+    def coord(self):
+	lat=-1
+	while(lat <= 0.0):
+		self.gpsd.next()
+            	lat = self.gpsd.fix.latitude
+		lon = self.gpsd.fix.longitude
+            	time.sleep(.3)
+		pos[0] = lat
+		pos[1] = lon	
+	return pos  
+##########################################################################
+# getpos: It is a function that calls for the instantiation
+# of the Gps class and calls the the function coord to get the position 
+# of from Gps module, if the Gps module is not able to get a "fix", the 
+# program kills and restart the Gps
+#########################################################################
+def getpos(): 
+    #restartGps()    
+    while True:      
+        try:
+            restartGps()
+            gpsMonitor = GpsMonitor() 
+            pos = gpsMonitor.coord()
+            if(math.isnan(pos[0]) or math.isnan(pos[1])):
+                print '[Error] Could not gather GPS coordinates. Will restart it.'
+                restartGps()
+            return pos           
+        except KeyboardInterrupt:
+            raise            
+        except:
+            print '[Error] Could not connect to GPS. Will restart it.'            
+            restartGps()          
+##########################################################################
+# getLongitude: Function used to retrieve longitude. It calls function getpos
+# and return  the second element of the array pos
+#########################################################################
+def getLongitude():
+    pos = getpos()
+    return(pos[1])
+##########################################################################
+# getLongitude: Function used to retrieve latitude. It calls function getpos
+# and return  the first element of the array pos
+#########################################################################    
+def getLatitude():
+    pos = getpos()
+    return(pos[0])
